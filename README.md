@@ -78,6 +78,13 @@ The **Environment Border Indicator** should now appear in your list of extension
 
 ---
 
+
+## 🧭 Extension Analysis & Enhancement Ideas
+
+A prioritized analysis with recommended enhancements is available in [`EXTENSION_ENHANCEMENTS.md`](./EXTENSION_ENHANCEMENTS.md).
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! If you have ideas for new features (like regex support or sync capabilities), feel free to open an issue or submit a pull request.
