@@ -82,19 +82,40 @@
     function createLabel(rule) {
         if (!rule.label) return;
 
+        function withAlpha(color, alpha) {
+            const value = String(color || '').trim();
+            const hex = value.replace('#', '');
+
+            if (/^[0-9a-fA-F]{3}$/.test(hex)) {
+                const r = parseInt(hex[0] + hex[0], 16);
+                const g = parseInt(hex[1] + hex[1], 16);
+                const b = parseInt(hex[2] + hex[2], 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+
+            if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+                const r = parseInt(hex.slice(0, 2), 16);
+                const g = parseInt(hex.slice(2, 4), 16);
+                const b = parseInt(hex.slice(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+
+            return value || `rgba(0, 255, 0, ${alpha})`;
+        }
+
         const label = document.createElement('div');
         label.id = LABEL_ID;
         label.textContent = rule.label;
         const style = label.style;
         style.position = 'fixed';
         style.top = '12px';
-        style.right = '12px';
+        style.left = '12px';
         style.zIndex = '2147483647';
         style.padding = '6px 10px';
-        style.background = rule.color;
+        style.background = withAlpha(rule.color, 0.5);
         style.color = '#111827';
         style.borderRadius = '6px';
-        style.fontSize = '12px';
+        style.fontSize = '16px';
         style.fontWeight = '700';
         style.letterSpacing = '0.03em';
         style.pointerEvents = 'none';
