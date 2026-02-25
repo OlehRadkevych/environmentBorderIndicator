@@ -108,8 +108,8 @@
         label.textContent = rule.label;
         const style = label.style;
         style.position = 'fixed';
-        style.top = '12px';
-        style.left = '12px';
+        style.top = '1px';
+        style.left = '1px';
         style.zIndex = '2147483647';
         style.padding = '6px 10px';
         style.background = withAlpha(rule.color, 0.5);
