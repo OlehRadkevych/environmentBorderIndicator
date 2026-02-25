@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environment Border Settings</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --danger: #dc2626;
+      --bg: #f8fafc;
+      --text: #1e293b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      width: 450px;
+      margin: 0;
+      padding: 16px;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    h2 { margin-top: 0; font-size: 1.25rem; font-weight: 600; }
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      padding: 10px;
+      background: #f1f5f9;
+      font-size: 0.85rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 0.9rem;
+    }
+    input[type="text"].error {
+      border-color: var(--danger);
+      background-color: #fef2f2;
+    }
+    input[type="color"] {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      cursor: pointer;
+      background: none;
+    }
+    .btn-delete {
+      color: var(--danger);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 4px 8px;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-add {
+      background: #e2e8f0;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-add:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-top: 8px;
+      display: none;
+    }
+    .duplicate-warning {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: none;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>Environment Indicator</h2>
+  
+  <div id="duplicate-msg" class="duplicate-warning">Duplicate URL detected. Fix it before saving.</div>
+
+  <div class="table-container">
+    <table id="rules-table">
+      <thead>
+        <tr>
+          <th style="width: 70%">URL (Host/Subdomain)</th>
+          <th style="width: 15%">Color</th>
+          <th style="width: 15%"></th>
+        </tr>
+      </thead>
+      <tbody id="rules-body">
+
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <button id="add-row" class="btn-add">+ Add new row</button>
+    <button id="save-settings" class="btn-save">Save</button>
+  </div>
+  <div id="validation-error" class="error-msg">Validation is failed. Check entered URLs.</div>
+
+
+  <script src="popup.js"></script>
+</body>
+</html>
