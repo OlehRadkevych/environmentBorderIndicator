@@ -3,7 +3,7 @@
   "name": "Environment Border Indicator",
   "version": "1.0",
   "description": "Visually marks environments with a colored border based on user-defined URL rules.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
   "action": {
     "default_popup": "popup.html"
   },

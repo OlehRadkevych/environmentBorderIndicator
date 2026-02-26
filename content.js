@@ -4,7 +4,11 @@
     const OVERLAY_ID = 'env-border-indicator-overlay';
     const LABEL_ID = 'env-border-indicator-label';
 
-    function normalizeLegacyRule(rule = {}) {
+    function normalizeLegacyRule(rule = {}, index = 0) {
+        const rawPriority = Number(rule.priority);
+        const fallbackPriority = index + 1;
+        const priority = Number.isFinite(rawPriority) ? rawPriority : fallbackPriority;
+
         if (rule.pattern) {
             return {
                 matchType: rule.matchType || 'exact',
@@ -12,7 +16,8 @@
                 color: rule.color || '#00ff00',
                 label: rule.label || '',
                 borderStyle: rule.borderStyle || 'solid',
-                borderThickness: Number(rule.borderThickness) || 10
+                borderThickness: Number(rule.borderThickness) || 10,
+                priority
             };
         }
 
@@ -27,7 +32,8 @@
                 color: rule.color || '#00ff00',
                 label: rule.label || '',
                 borderStyle: rule.borderStyle || 'solid',
-                borderThickness: Number(rule.borderThickness) || 10
+                borderThickness: Number(rule.borderThickness) || 10,
+                priority
             };
         } catch (e) {
             return null;
@@ -146,7 +152,11 @@
 
     function applyIndicator() {
         chrome.storage.local.get(['rules'], (result) => {
-            const rules = (result.rules || []).map(normalizeLegacyRule).filter(Boolean);
+            const rules = (result.rules || [])
+                .map((rule, index) => normalizeLegacyRule(rule, index))
+                .filter(Boolean)
+                .map((rule, index) => ({ ...rule, _index: index }))
+                .sort((a, b) => a.priority - b.priority || a._index - b._index);
             const currentUrlObj = new URL(window.location.href);
             const matchingRule = rules.find((rule) => {
                 try {
