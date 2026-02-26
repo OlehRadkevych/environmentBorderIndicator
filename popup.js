@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const importBtn = document.getElementById('import-rules');
     const exportBtn = document.getElementById('export-rules');
     const importInput = document.getElementById('import-file');
+    const tableContainer = document.querySelector('.table-container');
     const toolsMenuButton = document.getElementById('tools-menu-button');
     const toolsMenu = document.getElementById('tools-menu');
 
@@ -116,6 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateAddButtonState() {
         addBtn.disabled = rulesBody.children.length >= MAX_RULES;
+    }
+
+    function scrollRulesToBottom() {
+        if (!tableContainer) return;
+        tableContainer.scrollTo({
+            top: tableContainer.scrollHeight,
+            behavior: 'smooth'
+        });
     }
 
     function getPlaceholder(matchType) {
@@ -335,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addBtn.addEventListener('click', () => {
         addRow();
+        scrollRulesToBottom();
         triggerValidation();
     });
 
