@@ -15,6 +15,7 @@
                 pattern: String(rule.pattern),
                 color: rule.color || '#00ff00',
                 label: rule.label || '',
+                enabled: rule.enabled !== false,
                 borderStyle: rule.borderStyle || 'solid',
                 borderThickness: Number(rule.borderThickness) || 10,
                 priority
@@ -31,6 +32,7 @@
                 pattern: hasPath ? `${parsed.hostname}${parsed.pathname}` : parsed.hostname,
                 color: rule.color || '#00ff00',
                 label: rule.label || '',
+                enabled: rule.enabled !== false,
                 borderStyle: rule.borderStyle || 'solid',
                 borderThickness: Number(rule.borderThickness) || 10,
                 priority
@@ -151,10 +153,15 @@
     }
 
     function applyIndicator() {
-        chrome.storage.local.get(['rules'], (result) => {
+        chrome.storage.local.get(['rules', 'isPaused'], (result) => {
+            if (result.isPaused) {
+                clearIndicator();
+                return;
+            }
+
             const rules = (result.rules || [])
                 .map((rule, index) => normalizeLegacyRule(rule, index))
-                .filter(Boolean)
+                .filter((rule) => Boolean(rule) && rule.enabled !== false)
                 .map((rule, index) => ({ ...rule, _index: index }))
                 .sort((a, b) => a.priority - b.priority || a._index - b._index);
             const currentUrlObj = new URL(window.location.href);
@@ -193,7 +200,7 @@
     }
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName === 'local' && changes.rules) {
+        if (areaName === 'local' && (changes.rules || changes.isPaused)) {
             applyIndicator();
         }
     });

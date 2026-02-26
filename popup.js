@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolsMenuButton = document.getElementById('tools-menu-button');
     const toolsMenu = document.getElementById('tools-menu');
     const matchedByInfo = document.getElementById('matched-by-info');
+    const isPausedToggle = document.getElementById('is-paused-toggle');
+    const pauseToggleLabel = document.getElementById('pause-toggle-label');
 
     const MAX_RULES = 20;
     const DEFAULT_RULE = {
@@ -18,12 +20,14 @@ document.addEventListener('DOMContentLoaded', () => {
         pattern: '',
         color: '#00ff00',
         label: '',
+        enabled: true,
         borderStyle: 'solid',
         borderThickness: 10,
         priority: 0
     };
 
     let initialSnapshot = '';
+    let initialPaused = false;
     let dragState = { row: null };
     let currentTabUrl = '';
 
@@ -38,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pattern: String(rule.pattern),
                 color: rule.color || DEFAULT_RULE.color,
                 label: rule.label || '',
+                enabled: rule.enabled !== false,
                 borderStyle: rule.borderStyle || 'solid',
                 borderThickness: Number(rule.borderThickness) || 10,
                 priority
@@ -56,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pattern: hasPath ? `${parsed.hostname}${parsed.pathname}` : parsed.hostname,
                 color: rule.color || DEFAULT_RULE.color,
                 label: rule.label || '',
+                enabled: rule.enabled !== false,
                 borderStyle: rule.borderStyle || 'solid',
                 borderThickness: Number(rule.borderThickness) || 10,
                 priority
@@ -79,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">↕</button>
                 <span class="priority-value"></span>
             </td>
+            <td class="enabled-cell"><input type="checkbox" class="enabled-input" ${rule.enabled === false ? '' : 'checked'}></td>
             <td>
                 <select class="match-type">
                     <option value="exact">Exact host</option>
@@ -92,21 +99,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="row-error"></div>
             </td>
             <td><input type="color" class="color-input" value="${rule.color || DEFAULT_RULE.color}"></td>
-            <td><input type="text" class="label-input" maxlength="20" placeholder="PROD" value="${escapeHtml(rule.label || '')}"></td>
             <td>
-                <select class="style-input">
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="double">Double</option>
-                    <option value="dotted">Dotted</option>
-                </select>
+                <input type="text" class="label-input" maxlength="20" placeholder="PROD" value="${escapeHtml(rule.label || '')}">
+                <input type="hidden" class="style-input" value="${escapeHtml(rule.borderStyle || 'solid')}">
+                <input type="hidden" class="thickness-input" value="${Number(rule.borderThickness) || 10}">
             </td>
-            <td><input type="number" class="thickness-input" min="2" max="40" value="${Number(rule.borderThickness) || 10}"></td>
             <td><button class="btn-delete" type="button" aria-label="Delete rule">×</button></td>
         `;
 
         tr.querySelector('.match-type').value = rule.matchType || 'exact';
-        tr.querySelector('.style-input').value = rule.borderStyle || 'solid';
         setupDragAndDrop(tr);
 
         tr.querySelector('.btn-delete').onclick = () => {
@@ -230,6 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pattern: rule.pattern,
             color: (rule.color || DEFAULT_RULE.color).toLowerCase(),
             label: (rule.label || '').trim(),
+            enabled: rule.enabled !== false,
             borderStyle: rule.borderStyle || 'solid',
             borderThickness: Number(rule.borderThickness),
             priority: Number(rule.priority)
@@ -287,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pattern: rawPattern,
                 color: row.querySelector('.color-input').value,
                 label: row.querySelector('.label-input').value.trim(),
+                enabled: row.querySelector('.enabled-input').checked,
                 borderStyle: row.querySelector('.style-input').value,
                 borderThickness: Number(row.querySelector('.thickness-input').value),
                 priority: Number(row.dataset.priority)
@@ -348,6 +351,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.stringify(rules);
     }
 
+    function refreshPauseToggleAppearance() {
+        if (!pauseToggleLabel || !isPausedToggle) return;
+        pauseToggleLabel.classList.toggle('is-paused', isPausedToggle.checked);
+    }
+
     function ensureLeadingSlash(pathname) {
         if (!pathname) return '/';
         return pathname.startsWith('/') ? pathname : `/${pathname}`;
@@ -404,8 +412,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const { rules } = validateRows(false);
+        if (isPausedToggle?.checked) {
+            matchedByInfo.textContent = 'Indicator is paused globally. Rules are kept but not applied.';
+            return;
+        }
+
         const match = rules.find((rule) => {
             try {
+                if (!rule.enabled) return false;
                 return ruleMatchesUrl(rule, parsedUrl);
             } catch (e) {
                 return false;
@@ -422,8 +436,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshSaveState() {
         const { isValid, rules } = validateRows(false);
-        const hasChanged = snapshotRules(rules) !== initialSnapshot;
+        const hasChanged = snapshotRules(rules) !== initialSnapshot || Boolean(isPausedToggle?.checked) !== initialPaused;
         saveBtn.disabled = !isValid || !hasChanged;
+        refreshPauseToggleAppearance();
         refreshMatchedByPreview();
     }
 
@@ -441,8 +456,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveRules(rules) {
-        chrome.storage.local.set({ rules }, () => {
+        const isPaused = Boolean(isPausedToggle?.checked);
+        chrome.storage.local.set({ rules, isPaused }, () => {
             initialSnapshot = snapshotRules(rules);
+            initialPaused = isPaused;
             showSuccess();
             refreshSaveState();
         });
@@ -459,11 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function exportRules() {
-        chrome.storage.local.get(['rules'], (result) => {
+        chrome.storage.local.get(['rules', 'isPaused'], (result) => {
             const rules = (result.rules || []).map((rule, index) => normalizeLegacyRule(rule, index));
             const payload = {
                 version: 1,
                 exportedAt: new Date().toISOString(),
+                isPaused: Boolean(result.isPaused),
                 rules
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -487,6 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const normalized = imported.slice(0, MAX_RULES).map((rule, index) => normalizeLegacyRule(rule, index));
                 populateRows(normalized);
+                if (typeof parsed.isPaused === 'boolean' && isPausedToggle) {
+                    isPausedToggle.checked = parsed.isPaused;
+                }
                 triggerValidation();
                 showSuccess('Imported');
             } catch (e) {
@@ -502,11 +523,16 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshMatchedByPreview();
     });
 
-    chrome.storage.local.get(['rules'], (result) => {
+    chrome.storage.local.get(['rules', 'isPaused'], (result) => {
         const rules = (result.rules || []).map((rule, index) => normalizeLegacyRule(rule, index));
+        if (isPausedToggle) {
+            isPausedToggle.checked = Boolean(result.isPaused);
+            refreshPauseToggleAppearance();
+        }
         populateRows(rules);
         const initial = validateRows(false).rules;
         initialSnapshot = snapshotRules(initial);
+        initialPaused = Boolean(result.isPaused);
         refreshSaveState();
     });
 
@@ -523,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     exportBtn.addEventListener('click', exportRules);
+    isPausedToggle?.addEventListener('change', triggerValidation);
 
     function setMenuOpen(isOpen) {
         toolsMenu.classList.toggle('open', isOpen);

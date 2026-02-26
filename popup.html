@@ -25,6 +25,33 @@
       justify-content: space-between;
       margin-bottom: 8px;
     }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pause-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: #334155;
+    }
+    .pause-toggle input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+    .pause-toggle.is-paused {
+      border-color: #dc2626;
+      background: #fef2f2;
+      color: #991b1b;
+    }
     h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
     .table-container {
       max-height: 420px;
@@ -220,18 +247,32 @@
       color: #334155;
       word-break: break-word;
     }
+    .enabled-cell {
+      text-align: center;
+    }
+    .enabled-input {
+      width: 16px;
+      height: 16px;
+      margin-top: 6px;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <h2>Environment Indicator</h2>
-    <div class="menu-wrapper">
-      <button id="tools-menu-button" class="btn btn-aux btn-burger" type="button" aria-label="Open menu" aria-haspopup="true" aria-expanded="false">☰</button>
-      <div id="tools-menu" class="menu-panel" role="menu" aria-label="Rule actions">
-        <button id="import-rules" class="menu-item" type="button" role="menuitem">Import JSON</button>
-        <button id="export-rules" class="menu-item" type="button" role="menuitem">Export JSON</button>
+    <div class="header-controls">
+      <label id="pause-toggle-label" class="pause-toggle" for="is-paused-toggle">
+        <input id="is-paused-toggle" type="checkbox">
+        <span>Pause indicator</span>
+      </label>
+      <div class="menu-wrapper">
+        <button id="tools-menu-button" class="btn btn-aux btn-burger" type="button" aria-label="Open menu" aria-haspopup="true" aria-expanded="false">☰</button>
+        <div id="tools-menu" class="menu-panel" role="menu" aria-label="Rule actions">
+          <button id="import-rules" class="menu-item" type="button" role="menuitem">Import JSON</button>
+          <button id="export-rules" class="menu-item" type="button" role="menuitem">Export JSON</button>
+        </div>
+        <input id="import-file" type="file" accept="application/json" hidden>
       </div>
-      <input id="import-file" type="file" accept="application/json" hidden>
     </div>
   </div>
 
@@ -242,12 +283,11 @@
       <thead>
         <tr>
           <th style="width: 9%">Priority</th>
+          <th style="width: 6%">On</th>
           <th style="width: 18%">Mode</th>
           <th style="width: 24%">Pattern</th>
           <th style="width: 8%">Color</th>
-          <th style="width: 14%">Label</th>
-          <th style="width: 17%">Border style</th>
-          <th style="width: 8%">Px</th>
+          <th style="width: 20%">Label</th>
           <th style="width: 2%"></th>
         </tr>
       </thead>
