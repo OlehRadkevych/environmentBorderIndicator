@@ -9,7 +9,7 @@ By drawing a customizable **10px colored border** around the viewport, it preven
 ## ✨ Key Features
 
 - 🎯 **Visual Cues:** Instantly see a 10px colored border overlay on matching sites.
-- ⚙️ **Fully Configurable:** Add, edit, or delete up to 20 custom environment rules.
+- ⚙️ **Fully Configurable:** Add, edit, enable/disable, or delete up to 20 custom environment rules.
 - 🧹 **Smart Normalization:** Automatically handles URL inputs (trims spaces, prepends `https://`, cleans separators).
 - 🚀 **High Performance:** Minimal impact on browser performance. The border is a fixed overlay that doesn't shift the page layout.
 - 🛡️ **Secure:** Operates only on user-defined URLs. No data is sent to external servers; everything is stored locally in your browser storage.
@@ -64,8 +64,12 @@ The **Environment Border Indicator** should now appear in your list of extension
 - **Add Rules:**
   1. Enter a domain or subdomain (e.g., `test.example.com` or `localhost`).
   2. Pick a color using the visual palette.
-  3. Click **Save**.
-- **See it in Action:** Navigate to the site you configured or refresh an already open tab to see the border.
+  3. Keep the **On** checkbox selected to make the rule active.
+  4. Click **Save**.
+- **Temporarily Disable a Rule:** Uncheck **On** for that row and save. The rule stays in your list and can be re-enabled later.
+- **Pause Everything:** Use **Pause indicator** in the popup header to temporarily stop all indicators without changing or deleting your saved rules.
+- **Delete Permanently:** Use the **×** button to remove a rule completely when you no longer need it.
+- **See it in Action:** Navigate to the site you configured or refresh an already open tab to see the border (unless the indicator is paused).
 
 ---
 
