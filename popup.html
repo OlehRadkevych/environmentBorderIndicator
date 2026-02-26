@@ -81,6 +81,37 @@
       min-width: 132px;
       white-space: nowrap;
     }
+    .drag-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .drag-handle {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      line-height: 1;
+      cursor: grab;
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+    .priority-value {
+      font-size: 0.77rem;
+      color: #475569;
+      font-weight: 600;
+      min-width: 26px;
+    }
+    .rule-row.dragging {
+      opacity: 0.6;
+    }
+    .rule-row.drag-over {
+      outline: 2px dashed #93c5fd;
+      outline-offset: -2px;
+    }
     .btn-delete {
       color: var(--danger);
       background: none;
@@ -172,6 +203,23 @@
       display: none;
       font-size: 0.85rem;
     }
+    .matched-by {
+      margin-top: 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 0.82rem;
+    }
+    .matched-by strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+    }
+    #matched-by-info {
+      color: #334155;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -193,13 +241,14 @@
     <table id="rules-table">
       <thead>
         <tr>
-          <th style="width: 20%">Mode</th>
+          <th style="width: 9%">Priority</th>
+          <th style="width: 18%">Mode</th>
           <th style="width: 24%">Pattern</th>
           <th style="width: 8%">Color</th>
           <th style="width: 14%">Label</th>
           <th style="width: 17%">Border style</th>
-          <th style="width: 10%">Px</th>
-          <th style="width: 5%"></th>
+          <th style="width: 8%">Px</th>
+          <th style="width: 2%"></th>
         </tr>
       </thead>
       <tbody id="rules-body"></tbody>
@@ -211,6 +260,11 @@
       <button id="add-row" class="btn btn-add" type="button">+ Add new row</button>
     </div>
     <button id="save-settings" class="btn btn-save" type="button">Save</button>
+  </div>
+
+  <div class="matched-by">
+    <strong>Matched by</strong>
+    <div id="matched-by-info">Evaluating current tab…</div>
   </div>
 
   <div id="validation-error" class="error-msg">Validation failed. Check row-level errors.</div>

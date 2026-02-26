@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableContainer = document.querySelector('.table-container');
     const toolsMenuButton = document.getElementById('tools-menu-button');
     const toolsMenu = document.getElementById('tools-menu');
+    const matchedByInfo = document.getElementById('matched-by-info');
 
     const MAX_RULES = 20;
     const DEFAULT_RULE = {
@@ -18,12 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
         color: '#00ff00',
         label: '',
         borderStyle: 'solid',
-        borderThickness: 10
+        borderThickness: 10,
+        priority: 0
     };
 
     let initialSnapshot = '';
+    let dragState = { row: null };
+    let currentTabUrl = '';
 
-    function normalizeLegacyRule(rule = {}) {
+    function normalizeLegacyRule(rule = {}, index = 0) {
+        const rawPriority = Number(rule.priority);
+        const fallbackPriority = index + 1;
+        const priority = Number.isFinite(rawPriority) ? rawPriority : fallbackPriority;
+
         if (rule.pattern) {
             return {
                 matchType: rule.matchType || 'exact',
@@ -31,12 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: rule.color || DEFAULT_RULE.color,
                 label: rule.label || '',
                 borderStyle: rule.borderStyle || 'solid',
-                borderThickness: Number(rule.borderThickness) || 10
+                borderThickness: Number(rule.borderThickness) || 10,
+                priority
             };
         }
 
         if (!rule.url) {
-            return { ...DEFAULT_RULE };
+            return { ...DEFAULT_RULE, priority };
         }
 
         try {
@@ -48,12 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: rule.color || DEFAULT_RULE.color,
                 label: rule.label || '',
                 borderStyle: rule.borderStyle || 'solid',
-                borderThickness: Number(rule.borderThickness) || 10
+                borderThickness: Number(rule.borderThickness) || 10,
+                priority
             };
         } catch (e) {
             return {
                 ...DEFAULT_RULE,
-                pattern: rule.url
+                pattern: rule.url,
+                priority
             };
         }
     }
@@ -64,6 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const tr = document.createElement('tr');
         tr.className = 'rule-row';
         tr.innerHTML = `
+            <td class="drag-cell">
+                <button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag to reorder">↕</button>
+                <span class="priority-value"></span>
+            </td>
             <td>
                 <select class="match-type">
                     <option value="exact">Exact host</option>
@@ -92,11 +107,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tr.querySelector('.match-type').value = rule.matchType || 'exact';
         tr.querySelector('.style-input').value = rule.borderStyle || 'solid';
+        setupDragAndDrop(tr);
 
         tr.querySelector('.btn-delete').onclick = () => {
             tr.remove();
-            updateAddButtonState();
             if (rulesBody.children.length === 0) addRow();
+            updateRowPriorities();
+            updateAddButtonState();
             triggerValidation();
         };
 
@@ -112,11 +129,75 @@ document.addEventListener('DOMContentLoaded', () => {
         patternInput.placeholder = getPlaceholder(tr.querySelector('.match-type').value);
 
         rulesBody.appendChild(tr);
+        updateRowPriorities();
         updateAddButtonState();
     }
 
     function updateAddButtonState() {
         addBtn.disabled = rulesBody.children.length >= MAX_RULES;
+    }
+
+    function updateRowPriorities() {
+        Array.from(rulesBody.children).forEach((row, index) => {
+            const priority = index + 1;
+            row.dataset.priority = String(priority);
+            row.querySelector('.priority-value').textContent = `P${priority}`;
+        });
+    }
+
+    function setupDragAndDrop(row) {
+        const handle = row.querySelector('.drag-handle');
+        row.draggable = true;
+
+        handle.addEventListener('mousedown', () => {
+            row.classList.add('drag-intent');
+        });
+        handle.addEventListener('mouseup', () => {
+            row.classList.remove('drag-intent');
+        });
+
+        row.addEventListener('dragstart', (event) => {
+            if (!row.classList.contains('drag-intent')) {
+                event.preventDefault();
+                return;
+            }
+
+            dragState.row = row;
+            row.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', 'rule-row');
+        });
+
+        row.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+            row.classList.remove('drag-intent');
+            dragState.row = null;
+            Array.from(rulesBody.children).forEach((item) => item.classList.remove('drag-over'));
+        });
+
+        row.addEventListener('dragover', (event) => {
+            if (!dragState.row || dragState.row === row) return;
+            event.preventDefault();
+            row.classList.add('drag-over');
+            const midpoint = row.getBoundingClientRect().top + row.offsetHeight / 2;
+            if (event.clientY < midpoint) {
+                rulesBody.insertBefore(dragState.row, row);
+            } else {
+                rulesBody.insertBefore(dragState.row, row.nextSibling);
+            }
+            updateRowPriorities();
+        });
+
+        row.addEventListener('dragleave', () => {
+            row.classList.remove('drag-over');
+        });
+
+        row.addEventListener('drop', (event) => {
+            event.preventDefault();
+            row.classList.remove('drag-over');
+            updateRowPriorities();
+            triggerValidation();
+        });
     }
 
     function scrollRulesToBottom() {
@@ -150,8 +231,13 @@ document.addEventListener('DOMContentLoaded', () => {
             color: (rule.color || DEFAULT_RULE.color).toLowerCase(),
             label: (rule.label || '').trim(),
             borderStyle: rule.borderStyle || 'solid',
-            borderThickness: Number(rule.borderThickness)
+            borderThickness: Number(rule.borderThickness),
+            priority: Number(rule.priority)
         };
+
+        if (!Number.isFinite(normalized.priority)) {
+            normalized.priority = Number.MAX_SAFE_INTEGER;
+        }
 
         if (normalized.matchType === 'regex') {
             normalized.pattern = normalized.pattern.trim();
@@ -179,6 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMsg.style.display = 'none';
         duplicateMsg.style.display = 'none';
 
+        updateRowPriorities();
+
         const rows = Array.from(rulesBody.children);
         const seen = new Map();
         const collected = [];
@@ -189,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.querySelector('.row-error').textContent = '';
         });
 
-        for (const row of rows) {
+        for (const [index, row] of rows.entries()) {
             const matchType = row.querySelector('.match-type').value;
             const patternInput = row.querySelector('.pattern-input');
             const rowError = row.querySelector('.row-error');
@@ -200,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: row.querySelector('.color-input').value,
                 label: row.querySelector('.label-input').value.trim(),
                 borderStyle: row.querySelector('.style-input').value,
-                borderThickness: Number(row.querySelector('.thickness-input').value)
+                borderThickness: Number(row.querySelector('.thickness-input').value),
+                priority: Number(row.dataset.priority)
             };
 
             if (!rawPattern) continue;
@@ -215,9 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 if (matchType === 'regex') {
                     new RegExp(rawPattern);
-                } else if (matchType === 'path') {
-                    const parsed = new URL(`https://${rawPattern.replace(/^https?:\/\//i, '')}`);
-                    if (!parsed.hostname) throw new Error('missing hostname');
                 } else {
                     const parsed = new URL(`https://${rawPattern.replace(/^https?:\/\//i, '')}`);
                     if (!parsed.hostname) throw new Error('missing hostname');
@@ -244,24 +330,101 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             seen.set(dedupeKey, { input: patternInput, error: rowError });
-            collected.push(canonical);
+            collected.push({ ...canonical, _index: index });
         }
 
         if (!isValid && showMessages) {
             errorMsg.style.display = 'block';
         }
 
-        return { isValid, rules: collected };
+        const sortedRules = collected
+            .sort((a, b) => a.priority - b.priority || a._index - b._index)
+            .map(({ _index, ...rule }) => rule);
+
+        return { isValid, rules: sortedRules };
     }
 
     function snapshotRules(rules) {
         return JSON.stringify(rules);
     }
 
+    function ensureLeadingSlash(pathname) {
+        if (!pathname) return '/';
+        return pathname.startsWith('/') ? pathname : `/${pathname}`;
+    }
+
+    function hostMatchesWildcard(host, patternHost) {
+        const cleanPattern = patternHost.toLowerCase().replace(/^\*\./, '');
+        return host === cleanPattern || host.endsWith(`.${cleanPattern}`);
+    }
+
+    function ruleMatchesUrl(rule, currentUrlObj) {
+        const currentHost = currentUrlObj.hostname.toLowerCase();
+
+        if (rule.matchType === 'regex') {
+            try {
+                const regex = new RegExp(rule.pattern);
+                return regex.test(currentUrlObj.href);
+            } catch (e) {
+                return false;
+            }
+        }
+
+        const safePattern = String(rule.pattern || '').trim().replace(/^https?:\/\//i, '');
+        const parsed = new URL(`https://${safePattern}`);
+        const ruleHost = parsed.hostname.toLowerCase();
+
+        if (rule.matchType === 'wildcard') {
+            return hostMatchesWildcard(currentHost, ruleHost);
+        }
+
+        if (rule.matchType === 'path') {
+            if (ruleHost !== currentHost) return false;
+            const pathPrefix = ensureLeadingSlash(parsed.pathname).replace(/\/+$/, '');
+            const currentPath = ensureLeadingSlash(currentUrlObj.pathname);
+            return pathPrefix === '' || pathPrefix === '/' || currentPath.startsWith(pathPrefix);
+        }
+
+        return ruleHost === currentHost;
+    }
+
+    function refreshMatchedByPreview() {
+        if (!matchedByInfo) return;
+        if (!currentTabUrl) {
+            matchedByInfo.textContent = 'Current tab URL is not available. Grant tabs permission or open popup on a web page.';
+            return;
+        }
+
+        let parsedUrl;
+        try {
+            parsedUrl = new URL(currentTabUrl);
+        } catch (e) {
+            matchedByInfo.textContent = 'Current tab URL cannot be parsed.';
+            return;
+        }
+
+        const { rules } = validateRows(false);
+        const match = rules.find((rule) => {
+            try {
+                return ruleMatchesUrl(rule, parsedUrl);
+            } catch (e) {
+                return false;
+            }
+        });
+
+        if (!match) {
+            matchedByInfo.textContent = `No match for ${parsedUrl.href}`;
+            return;
+        }
+
+        matchedByInfo.textContent = `P${match.priority} · ${match.matchType} · ${match.pattern}${match.label ? ` · label: ${match.label}` : ''}`;
+    }
+
     function refreshSaveState() {
         const { isValid, rules } = validateRows(false);
         const hasChanged = snapshotRules(rules) !== initialSnapshot;
         saveBtn.disabled = !isValid || !hasChanged;
+        refreshMatchedByPreview();
     }
 
     function triggerValidation() {
@@ -274,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addRow();
             return;
         }
-        rules.slice(0, MAX_RULES).forEach((rule) => addRow(normalizeLegacyRule(rule)));
+        rules.slice(0, MAX_RULES).forEach((rule, index) => addRow(normalizeLegacyRule(rule, index)));
     }
 
     function saveRules(rules) {
@@ -297,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function exportRules() {
         chrome.storage.local.get(['rules'], (result) => {
-            const rules = (result.rules || []).map(normalizeLegacyRule);
+            const rules = (result.rules || []).map((rule, index) => normalizeLegacyRule(rule, index));
             const payload = {
                 version: 1,
                 exportedAt: new Date().toISOString(),
@@ -322,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imported = Array.isArray(parsed) ? parsed : parsed.rules;
                 if (!Array.isArray(imported)) throw new Error('Invalid format');
 
-                const normalized = imported.slice(0, MAX_RULES).map(normalizeLegacyRule);
+                const normalized = imported.slice(0, MAX_RULES).map((rule, index) => normalizeLegacyRule(rule, index));
                 populateRows(normalized);
                 triggerValidation();
                 showSuccess('Imported');
@@ -334,8 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     }
 
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        currentTabUrl = tabs?.[0]?.url || '';
+        refreshMatchedByPreview();
+    });
+
     chrome.storage.local.get(['rules'], (result) => {
-        const rules = (result.rules || []).map(normalizeLegacyRule);
+        const rules = (result.rules || []).map((rule, index) => normalizeLegacyRule(rule, index));
         populateRows(rules);
         const initial = validateRows(false).rules;
         initialSnapshot = snapshotRules(initial);
