@@ -99,21 +99,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="row-error"></div>
             </td>
             <td><input type="color" class="color-input" value="${rule.color || DEFAULT_RULE.color}"></td>
-            <td><input type="text" class="label-input" maxlength="20" placeholder="PROD" value="${escapeHtml(rule.label || '')}"></td>
             <td>
-                <select class="style-input">
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="double">Double</option>
-                    <option value="dotted">Dotted</option>
-                </select>
+                <input type="text" class="label-input" maxlength="20" placeholder="PROD" value="${escapeHtml(rule.label || '')}">
+                <input type="hidden" class="style-input" value="${escapeHtml(rule.borderStyle || 'solid')}">
+                <input type="hidden" class="thickness-input" value="${Number(rule.borderThickness) || 10}">
             </td>
-            <td><input type="number" class="thickness-input" min="2" max="40" value="${Number(rule.borderThickness) || 10}"></td>
             <td><button class="btn-delete" type="button" aria-label="Delete rule">×</button></td>
         `;
 
         tr.querySelector('.match-type').value = rule.matchType || 'exact';
-        tr.querySelector('.style-input').value = rule.borderStyle || 'solid';
         setupDragAndDrop(tr);
 
         tr.querySelector('.btn-delete').onclick = () => {
